@@ -35,14 +35,14 @@ class CoralLayer(torch.nn.Module):
     def __init__(self, size_in, num_classes, preinit_bias=True):
         super().__init__()
         self.size_in, self.size_out = size_in, 1
-
+        self.num_classes = num_classes
         self.coral_weights = torch.nn.Linear(self.size_in, 1, bias=False)
         if preinit_bias:
             self.coral_bias = torch.nn.Parameter(
-                torch.arange(num_classes - 1, 0, -1).float() / (num_classes-1))
+                torch.arange(self.num_classes - 1, 0, -1).float() / (self.num_classes-1))
         else:
             self.coral_bias = torch.nn.Parameter(
-                torch.zeros(num_classes-1).float())
+                torch.zeros(self.num_classes-1).float())
 
     def forward(self, x):
         """
@@ -57,4 +57,10 @@ class CoralLayer(torch.nn.Module):
         -----------
         logits : torch.tensor, shape=(num_examples, num_classes-1)
         """
-        return self.coral_weights(x) + self.coral_bias
+        weight = self.coral_weights(x)
+        bias = self.coral_bias
+
+        weight = weight.expand(weight.size(0), self.num_classes-1)
+        bias = bias.expand(weight.size(0), self.num_classes-1)
+
+        return weight + bias
